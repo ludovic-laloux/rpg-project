@@ -4,98 +4,101 @@ player_health = 100
 enemy_health = 100
 is_defending = False
 
+
 def roll(min_value, max_value):
     return random.randint(min_value, max_value)
 
-def hp_bar(hp):
-    bars = hp // 10
-    return "█" * bars + "-" * (10 - bars)
 
-while player_health > 0 and enemy_health > 0:
-
-    # STATUS
-    status = f"P [{hp_bar(player_health)}] {player_health:3}  |  E [{hp_bar(enemy_health)}] {enemy_health:3}"
-
+def show_status():
+    status = f"PLAYER HP {player_health:3} ENEMY HP {enemy_health:3}"
     print("\n" + "=" * len(status))
     print(status)
     print("=" * len(status) + "\n")
 
-    # PLAYER TURN
+
+def player_turn():
+    global player_health, enemy_health, is_defending
+
     print("--- Your turn ---")
-    print("[A] Attack  [D] Defend  [H] Heal")
-    action = input("Choose action: ").lower()
+    action = input("Choose action (A Attack, D Defend, H Heal): ").lower()
 
-    if action in ["a", "attack"]:
-        damage = roll(15, 60)
-
-        if random.random() < 0.2:
-            damage *= 2
-            print("💥 CRITICAL HIT!")
-
+    if action == "a":
+        damage = roll(20, 100)
         enemy_health = max(0, enemy_health - damage)
         print(f"You dealt {damage} damage!")
 
-    elif action in ["d", "defend"]:
+    elif action == "d":
         is_defending = True
-        print("🛡️ You prepare to defend...")
+        print("You prepare to defend...")
 
-    elif action in ["h", "heal"]:
-        heal = roll(10, 35)
+    elif action == "h":
+        heal = roll(10, 40)
         player_health = min(100, player_health + heal)
-        print(f"✨ You healed {heal} HP!")
+        print(f"You healed {heal} HP!")
 
     else:
-        print("Invalid action! Choose A, D, or H.")
-        continue
+        print("Invalid action")
+        return False
 
-    if enemy_health <= 0:
-        break
+    return True
 
-    # ---------------- ENEMY TURN ----------------
+
+def enemy_turn():
+    global player_health, enemy_health, is_defending
+
     print("\n--- Enemy turn ---")
 
-    # smarter healing logic: only if actually damaged
-    enemy_missing_hp = 100 - enemy_health
-
-    if enemy_missing_hp < 15:
-        # almost full HP → never heal
-        enemy_action = "attack"
-
-    elif enemy_missing_hp < 30:
-        # slightly hurt → small chance to heal
+    # decide action
+    if enemy_health < 30:
+        enemy_action = random.choice(["heal", "attack"])
+    else:
         enemy_action = random.choice(["attack", "attack", "heal"])
 
-    else:
-        # clearly damaged → more balanced behavior
-        enemy_action = random.choice(["attack", "heal"])
-
+    # execute action
     if enemy_action == "attack":
-        damage = roll(10, 50)
-
-        if random.random() < 0.15:
-            damage *= 2
-            print("⚠️ Enemy CRITICAL HIT!")
+        damage = roll(10, 80)
 
         if is_defending:
             damage //= 2
-            print(f"🛡️ You blocked! Damage reduced to {damage}.")
+            print(f"You blocked it! Damage reduced to {damage}.")
 
         player_health = max(0, player_health - damage)
         print(f"Enemy dealt {damage} damage!")
 
     elif enemy_action == "heal":
-        heal = roll(10, 30)
+        heal = roll(10, 40)
         enemy_health = min(100, enemy_health + heal)
         print(f"Enemy healed {heal} HP!")
 
     is_defending = False
 
+
+def end_game():
+    print("\n" * 30)
+
+    if player_health > 0:
+        print("YOU WIN! 🎉")
+    else:
+        print("YOU LOSE! 💀")
+
+    print(f"Final HP - Player: {player_health}, Enemy: {enemy_health}")
+
+
+# ---------------- MAIN GAME LOOP ----------------
+
+while player_health > 0 and enemy_health > 0:
+
+    show_status()
+
+    action_valid = player_turn()
+
+    if not action_valid:
+        continue
+
+    if enemy_health <= 0:
+        break
+
+    enemy_turn()
+
 # ---------------- END GAME ----------------
-print("\n" + "=" * 30)
-
-if player_health > 0:
-    print("YOU WIN! 🎉")
-else:
-    print("YOU LOSE! 💀")
-
-print(f"Final HP - Player: {player_health}, Enemy: {enemy_health}")
+end_game()
