@@ -1,4 +1,3 @@
-# IMPORTS
 import pygame
 import math
 
@@ -13,45 +12,48 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("My First Game")
 clock = pygame.time.Clock()
 
-
+# UTILITY
+def distance(a, b):
+    return math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
 # ---------------- PLAYER CLASS ----------------
 class Player:
     def __init__(self):
         self.x = 100
         self.y = 100
-        self.speed = 5
+        self.speed = 200
         self.size = 50
         self.attack_range = 60
+        self.health = 10
 
-    def move(self):
+    def move(self, dt):
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_LEFT]:
-            self.x -= self.speed
+            self.x -= self.speed * dt
         if keys[pygame.K_RIGHT]:
-            self.x += self.speed
+            self.x += self.speed * dt
         if keys[pygame.K_UP]:
-            self.y -= self.speed
+            self.y -= self.speed * dt
         if keys[pygame.K_DOWN]:
-            self.y += self.speed
+            self.y += self.speed * dt
 
         # boundaries
         self.x = max(0, min(SCREEN_WIDTH - self.size, self.x))
         self.y = max(0, min(SCREEN_HEIGHT - self.size, self.y))
 
     def attack(self, enemy):
-        distance = math.sqrt(
-            (self.x - enemy.x) ** 2 + (self.y - enemy.y) ** 2
-        )
+        dist = distance(self, enemy)
 
-        if distance < self.attack_range:
-            enemy.health -= 1
+        if dist < self.attack_range:
+            enemy.health = max(0, enemy.health - 1)
             print("Hit enemy! HP:", enemy.health)
+
         else:
             print("Too far!")
 
-    def draw(self, screen):
+    def draw(self,screen):
         pygame.draw.rect(screen, (255, 0, 0), (self.x, self.y, self.size, self.size))
+
 
 # ---------------- ENEMY CLASS ----------------
 class Enemy:
@@ -60,18 +62,28 @@ class Enemy:
         self.y = 300
         self.size = 50
         self.health = 3
-        self.speed = 2
+        self.speed = 100
+        self.attack_range = 40
 
-    def follow(self, player):
+    def follow(self, player, dt):
         if self.health > 0:
             if player.x < self.x:
-                self.x -= self.speed
+                self.x -= self.speed * dt
             if player.x > self.x:
-                self.x += self.speed
+                self.x += self.speed * dt
             if player.y < self.y:
-                self.y -= self.speed
+                self.y -= self.speed * dt
             if player.y > self.y:
-                self.y += self.speed
+                self.y += self.speed * dt
+
+    def attack(self, player, dt): # Enemy damages player
+        if self.health <= 0:
+            return
+
+        dist = distance(self, player)
+
+        if dist < self.attack_range:
+            player.health -= 3 * dt
 
     def draw(self, screen):
         if self.health > 0:
@@ -86,7 +98,7 @@ running = True
 
 # ---------------- MAIN LOOP ----------------
 while running:
-    clock.tick(60)
+    dt = clock.tick(60) / 1000
 
     # EVENTS
     for event in pygame.event.get():
@@ -98,8 +110,14 @@ while running:
                 player.attack(enemy)
 
     # UPDATE
-    player.move()
-    enemy.follow(player)
+    player.move(dt)
+    enemy.follow(player, dt)
+    enemy.attack(player, dt)
+
+    # GAME OVER CHECK
+    if player.health <= 0:
+        print("Game Over")
+        running = False
 
     # DRAW
     screen.fill((0, 0, 0))
@@ -109,5 +127,4 @@ while running:
 
     pygame.display.flip()
 
-# SHUTDOWN
 pygame.quit()
